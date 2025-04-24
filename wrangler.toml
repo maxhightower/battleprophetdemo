@@ -1,0 +1,3 @@
+name  = "static-assets"
+assets = "./"              # folder that contains index.html
+compatibility_date = "2025-04-24"
