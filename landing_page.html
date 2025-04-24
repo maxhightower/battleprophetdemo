@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BattleProphet - D&D Combat Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="logo.png" type="image/png">
+    <style>
+        /* --- Global Reset & Base --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; font-size: 16px; }
+        body { font-family: 'Poppins', sans-serif; background-color: #121212; color: #e0e0e0; line-height: 1.6; overflow-x: hidden; }
+
+        /* --- Layout & Containers --- */
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+        section { padding: 5rem 0; border-bottom: 1px solid #333; position: relative; z-index: 1; }
+        section:last-of-type { border-bottom: none; }
+
+        /* --- Typography --- */
+        h1, h2, h3 { font-weight: 600; margin-bottom: 1rem; line-height: 1.2; color: #ffffff; }
+        h1 { font-size: 3rem; }
+        h2 { font-size: 2.2rem; text-align: center; margin-bottom: 3rem; color: #00bcd4; }
+        h3 { font-size: 1.5rem; color: #00bcd4; margin-bottom: 0.75rem; }
+        .feature-item h3 { font-size: 1.25rem; }
+        .subsection h3 { margin-bottom: 1rem; font-size: 1.7rem; color: #ffffff; }
+        p { margin-bottom: 1rem; color: #b0b0b0; }
+        a { color: #00bcd4; text-decoration: none; transition: color 0.3s ease; }
+        a:hover { color: #88ffff; }
+
+        /* --- Header / Navigation --- */
+        header { background: rgba(18, 18, 18, 0.9); color: #fff; padding: 0.5rem 0; position: fixed; width: 100%; top: 0; z-index: 1000; backdrop-filter: blur(5px); border-bottom: 1px solid #333; }
+        header .container { display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; font-size: 1.5rem; font-weight: 700; color: #ffffff; text-decoration: none; }
+        .logo img { height: 40px; width: auto; margin-right: 0.75rem; }
+        .logo span { color: #00bcd4; }
+        nav ul { list-style: none; display: flex; }
+        nav ul li { margin-left: 1.5rem; }
+        nav ul li a { color: #e0e0e0; font-weight: 400; transition: color 0.3s ease; }
+        nav ul li a:hover { color: #00bcd4; }
+
+        /* --- Welcome Section --- */
+        #welcome { min-height: 85vh; display: flex; align-items: center; justify-content: center; text-align: center; padding-top: 8rem; position: relative; overflow: hidden; z-index: 1; }
+        #welcome-animation-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #0a0a0a; z-index: 1; display: flex; }
+        #dice-zone { flex: 1 1 50%; position: relative; overflow: hidden; }
+        #plot-zone { flex: 1 1 50%; position: relative; display: flex; align-items: center; justify-content: center; }
+
+        /* Die styling */
+        .die { position: absolute; width: 35px; height: 35px; /* Slightly smaller for more dice */ background-color: #1f1f1f; border: 2px solid #00bcd4; border-radius: 5px; color: #e0e0e0; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; justify-content: center; will-change: transform, top, left; transition: top 0.5s ease-out, left 0.5s ease-out, transform 0.5s ease-out; }
+        @keyframes roll { 0% { transform: translate(0, 0) rotate(0deg); } 20% { transform: translate(15%, -20%) rotate(120deg); } 40% { transform: translate(-10%, 15%) rotate(300deg); } 60% { transform: translate(25%, 10%) rotate(450deg); } 80% { transform: translate(-15%, -10%) rotate(600deg); } 100% { transform: translate(0, 0) rotate(720deg); } }
+
+        /* Plot Container (MUCH LARGER) */
+        #plot-container {
+            width: 500px; /* Increased width significantly */
+            height: 300px; /* Increased height significantly */
+            max-width: 90%; /* Prevent overflow on slightly smaller screens */
+            max-height: 80%;
+            background-color: rgba(30, 30, 30, 0.8); border: 1px solid #444; border-radius: 5px; padding: 20px; display: flex; justify-content: space-around; align-items: flex-end; z-index: 5; opacity: 0; transition: opacity 0.5s ease-in-out;
+        }
+        #plot-container.visible { opacity: 1; }
+        .plot-bar-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+        .plot-bar {
+            width: 40px; /* Wider bars */
+            background-color: #00bcd4; border-top-left-radius: 3px; border-top-right-radius: 3px; height: 0; transition: height 0.5s ease-out;
+        }
+        .plot-label { position: absolute; bottom: -25px; /* Adjusted position */ left: 50%; transform: translateX(-50%); font-size: 0.9rem; /* Larger label */ color: #aaa; }
+
+        /* Welcome Text Content (On Top) */
+        .welcome-content { position: relative; z-index: 3; background: rgba(18, 18, 18, 0.6); padding: 2rem; border-radius: 8px; max-width: 90%; }
+        #welcome h1 { font-size: 3.2rem; margin-bottom: 1rem; white-space: nowrap; color: #fff; }
+        #welcome p.subtitle { font-size: 1.2rem; max-width: 700px; margin: 0 auto 2rem auto; color: #e0e0e0; }
+
+        /* --- Buttons --- */
+        .btn { display: inline-block; background: #00bcd4; color: #121212; padding: 0.8rem 2rem; border: none; border-radius: 5px; font-size: 1rem; font-weight: 600; cursor: pointer; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease; text-align: center; }
+        .btn:hover { background-color: #0097a7; transform: translateY(-2px); }
+
+        /* --- Features Section --- */
+        #features { background-color: #1a1a1a; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 2rem; }
+        .feature-item { background: #1f1f1f; padding: 1.5rem; border-radius: 8px; text-align: center; border: 1px solid #333; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; align-items: center; }
+        .feature-item:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 188, 212, 0.1); }
+        .feature-item .icon-placeholder { font-size: 2rem; color: #00bcd4; margin-bottom: 0.75rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; }
+        .feature-item p { font-size: 0.9rem; color: #b0b0b0; margin-bottom: 0; flex-grow: 1; }
+
+        /* --- Description Section (Using Sliders) --- */
+        #description .container { max-width: 1200px; }
+        .description-subsections { margin-top: 3rem; display: flex; flex-direction: column; gap: 4rem; }
+        .subsection { display: flex; gap: 3rem; align-items: center; }
+        .subsection-text { flex: 1; }
+        .subsection-slider { flex: 0 0 45%; max-width: 45%; position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); max-height: 300px; background-color: #1f1f1f; }
+        .slider-images { display: flex; transition: transform 0.4s ease-in-out; height: 100%; }
+        .slider-images img { width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; display: block; }
+        .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.6); color: #fff; border: none; border-radius: 50%; cursor: pointer; width: 35px; height: 35px; font-size: 1.2rem; line-height: 35px; text-align: center; z-index: 10; opacity: 0.7; transition: opacity 0.3s ease; }
+        .slider-btn:hover { opacity: 1; }
+        .slider-btn.prev { left: 10px; } .slider-btn.next { right: 10px; }
+
+        /* --- FAQ Section --- */
+        #faq .container { max-width: 800px; }
+        .faq-item { background: #1f1f1f; margin-bottom: 1rem; border-radius: 5px; border: 1px solid #333; }
+        .faq-question { padding: 1rem 1.5rem; font-weight: 600; cursor: pointer; position: relative; color: #e0e0e0; }
+        .faq-question::after { content: '+'; position: absolute; right: 1.5rem; font-size: 1.5rem; transition: transform 0.3s ease; }
+        .faq-answer { max-height: 0; overflow: hidden; padding: 0 1.5rem; transition: max-height 0.4s ease-out, padding 0.4s ease-out; color: #b0b0b0; }
+        .faq-item.active .faq-answer { max-height: 300px; padding: 1rem 1.5rem; }
+        .faq-item.active .faq-question::after { transform: rotate(45deg); }
+
+        /* --- Signup Section --- */
+        #signup .container { max-width: 600px; text-align: center; }
+        #waitlist-form { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+        #waitlist-form label { display: block; margin-bottom: 0.5rem; font-weight: 600; text-align: left; color: #c0c0c0; }
+        #waitlist-form input[type="text"], #waitlist-form input[type="email"], #waitlist-form select { width: 100%; padding: 0.8rem 1rem; border: 1px solid #444; border-radius: 5px; background-color: #2a2a2a; color: #e0e0e0; font-family: 'Poppins', sans-serif; font-size: 1rem; }
+        #waitlist-form select { appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="%2300bcd4" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>'); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; padding-right: 2.5rem; }
+        #waitlist-form select:invalid { color: #888; }
+        #waitlist-form option { background-color: #2a2a2a; color: #e0e0e0; }
+        #waitlist-form input[type="text"]:focus, #waitlist-form input[type="email"]:focus, #waitlist-form select:focus { outline: none; border-color: #00bcd4; box-shadow: 0 0 0 2px rgba(0, 188, 212, 0.3); }
+        #waitlist-form button { margin-top: 1rem; }
+        #form-message { margin-top: 1.5rem; font-weight: 600; min-height: 1.5em; }
+        .success-message { color: #4CAF50; } .error-message { color: #F44336; }
+
+        /* --- Footer --- */
+        footer { background-color: #1f1f1f; color: #aaa; text-align: center; padding: 2rem 0; margin-top: 3rem; }
+        .social-links a { color: #aaa; margin: 0 0.75rem; font-size: 1.5rem; transition: color 0.3s ease; }
+        .social-links a:hover { color: #00bcd4; }
+        footer p { margin-top: 1rem; font-size: 0.9rem; color: #888; }
+
+        /* --- Responsive Design --- */
+         @media (max-width: 1200px) { #description .container { max-width: 95%; } }
+         @media (max-width: 992px) { /* Tablet */
+             #welcome h1 { font-size: 2.8rem; white-space: normal; }
+             .features-grid { grid-template-columns: repeat(2, 1fr); }
+             .subsection { flex-direction: column !important; text-align: center; }
+             .subsection-text { order: 2; }
+             .subsection-slider { order: 1; max-width: 70%; flex-basis: auto; margin: 0 auto 1.5rem auto; width: 70%; max-height: 250px; }
+             .subsection h3 { font-size: 1.6rem; }
+             #plot-container { width: 400px; height: 240px; } /* Adjust plot size */
+             .plot-bar { width: 35px; }
+         }
+        @media (max-width: 768px) { /* Large Mobile / Small Tablet */
+            html { font-size: 15px; }
+            h1 { font-size: 2.5rem; } #welcome h1 { font-size: 2.5rem; white-space: normal; }
+            h2 { font-size: 1.8rem; }
+            header .container { flex-direction: column; text-align: center; gap: 0.5rem; }
+            nav ul { margin-top: 0.5rem; justify-content: center; } nav ul li { margin: 0 0.75rem; }
+            #welcome { min-height: 80vh; padding-top: 12rem; }
+            .welcome-content { padding: 1.5rem; }
+            #welcome p.subtitle { font-size: 1.1rem; }
+             .features-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+             .subsection-slider { max-width: 80%; width: 80%; max-height: 220px; }
+             .subsection h3 { font-size: 1.5rem; }
+            section { padding: 3rem 0; }
+            /* Stack dice/plot */
+            #welcome-animation-container { flex-direction: column; }
+            #dice-zone { flex: 1 1 50%; /* Adjust ratio if needed */ min-height: 250px; /* Ensure space for dice */ }
+            #plot-zone { flex: 1 1 50%; align-items: center; /* Center plot vertically */ padding: 1rem 0; } /* Adjust padding */
+            #plot-container { width: 300px; height: 180px; } /* Adjusted stacked plot size */
+            .plot-bar { width: 30px; }
+        }
+         @media (max-width: 600px) { /* Mobile */
+             html { font-size: 14px; }
+             h1 { font-size: 2rem; } #welcome h1 { font-size: 2rem; white-space: normal; }
+             #welcome p.subtitle { font-size: 1rem; max-width: 90%; }
+             .welcome-content { padding: 1rem; max-width: 95%; }
+             .container { padding: 0 1rem; }
+             .btn { padding: 0.7rem 1.5rem; font-size: 0.9rem; }
+             nav ul li { margin: 0 0.5rem; }
+             .features-grid { grid-template-columns: 1fr; }
+             .social-links a { margin: 0 0.5rem; font-size: 1.3rem; }
+             .subsection { gap: 1.5rem; }
+             .subsection-slider { max-width: 100%; width: 100%; max-height: 200px; }
+             .subsection h3 { font-size: 1.4rem; }
+             #welcome { padding-top: 11rem; }
+             .logo img { height: 35px; }
+             .logo { font-size: 1.3rem; }
+             .slider-btn { width: 30px; height: 30px; font-size: 1rem; line-height: 30px; }
+             .slider-btn.prev { left: 5px; } .slider-btn.next { right: 5px; }
+             #plot-container { width: 240px; height: 150px; padding: 10px; } /* Adjust plot size */
+             .plot-bar { width: 25px; }
+             .plot-label { font-size: 0.7rem; bottom: -18px;}
+             #dice-zone { flex-basis: 55%; min-height: 200px; } #plot-zone { flex-basis: 45%; } /* Adjust stack ratio */
+         }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <a href="#welcome" class="logo"> <img src="logo.png" alt="BattleProphet Logo"> Battle<span>Prophet</span> </a>
+            <nav> <ul> <li><a href="#welcome">Home</a></li> <li><a href="#features">Features</a></li> <li><a href="#description">About</a></li> <li><a href="#faq">FAQ</a></li> <li><a href="#signup">Join Waitlist</a></li> </ul> </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Welcome Section -->
+        <section id="welcome">
+            <div id="welcome-animation-container">
+                <div id="dice-zone">
+                    <!-- Increased to 12 dice -->
+                    <div class="die"></div> <div class="die"></div> <div class="die"></div>
+                    <div class="die"></div> <div class="die"></div> <div class="die"></div>
+                    <div class="die"></div> <div class="die"></div> <div class="die"></div>
+                    <div class="die"></div> <div class="die"></div> <div class="die"></div>
+                </div>
+                <div id="plot-zone">
+                    <div id="plot-container"></div>
+                </div>
+            </div>
+            <div class="welcome-content">
+                 <h1>Welcome to BattleProphet</h1>
+                 <p class="subtitle">The next step in the future of Dungeons & Dragons. BattleProphet grants both GM and Player greater insight than ever before into the mechanics of D&D 5e.</p>
+                 <a href="#signup" class="btn">Join the Waitlist</a>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features">
+            <div class="container">
+                <h2>Core Features</h2>
+                <div class="features-grid">
+                    <div class="feature-item"> <div class="icon-placeholder">📈</div> <h3>Battle Simulation Analytics</h3> <p>Run thousands of simulated combats in seconds to see statistical outcomes and probabilities.</p> </div>
+                    <div class="feature-item"> <div class="icon-placeholder">🎯</div> <h3>Party Specific Challenge Rating</h3> <p>Calculate accurate encounter difficulty based on your specific party composition and level.</p> </div>
+                    <div class="feature-item"> <div class="icon-placeholder">🤖</div> <h3>Computer Simulated Play Testing</h3> <p>Test your custom monsters or encounter designs against simulated party tactics.</p> </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Description Section -->
+        <section id="description">
+            <div class="container">
+                <h2>What is BattleProphet?</h2>
+                <div class="description-subsections">
+                    <!-- Subsection 1 -->
+                    <div class="subsection">
+                        <div class="subsection-text">
+                            <h3>Applying Modern Analytics</h3>
+                            <p>BattleProphet is an analytical software built on its ability to simulate D&D combat. By running a combat encounter millions of times, every possibility is guarunteed to occur. That information is then analyzed and visualized for the user to glean greater insights than ever before.</p>
+                            <p>BattleProphet can answer questions such as: How many rounds is this encounter likely to last? What % chance is there of a TPK? What % chance is there that my BBEG is killed in one round? Being able to see these statistics allows GMs to identify problems before they happen at the table.</p>
+                            <p>Every fan of the game knows the problems with D&D 5e's Challenge Rating system. BattleProphet can calculate, for a given adventuring party, how difficult fighting each monster, or even an entire encounter, would be.</p>
+                        </div>
+                         <div class="subsection-slider">
+                            <div class="slider-images">
+                                <img src="https://cdn.arstechnica.net/wp-content/uploads/2023/01/product-hero-starterset.jpg" alt="Simulation Visual 1">
+                                <img src="https://www.mtgfestivals.com/content/dam/sitebuilder/rna/mtgfestivals/magiccon-chicago/2025/images/framework/mc-chicago-2025-dnd-takeover-fallback.jpg/_jcr_content/renditions/original.image_file.1999.1000.file/371379726/mc-chicago-2025-dnd-takeover-fallback.jpg" alt="Simulation Visual 2">
+                                <img src="https://www.enworld.org/attachments/monster_manual_traditional_cover_art_copy-webp.395187/" alt="Simulation Visual 3">
+                            </div>
+                            <button class="slider-btn prev" aria-label="Previous image"><</button>
+                            <button class="slider-btn next" aria-label="Next image">></button>
+                        </div>
+                    </div>
+                    <!-- Subsection 2 -->
+                     <div class="subsection">
+                         <div class="subsection-text">
+                             <h3>A Billion Battles Behind Every Decision</h3>
+                             <p>Go beyond basic stats. Our AI analyzes monster abilities, synergies, action economy, and even potential environmental factors. Visualize the battlefield and explore tactical options you might have missed.</p>
+			     <p>Equipped with a greater understanding... </p>
+                             <p>Understand the optimal moments for monsters to use their recharge abilities, focus fire, or employ crowd control. Learn how different party builds interact with specific monster tactics and prepare accordingly.</p>
+                         </div>
+                           <div class="subsection-slider">
+                            <div class="slider-images">
+                                <img src="https://static1.thegamerimages.com/wordpress/wp-content/uploads/wm/2025/02/three-different-adventure-modules-for-dungeons-dragons-featuring-primary-antagonists-for-all-three.jpg" alt="Tactical Analysis 1">
+                                <img src="https://comicbook.com/wp-content/uploads/sites/4/2024/08/17c49e1f-7b0c-4795-8b37-81af81822e27.jpg" alt="Tactical Analysis 2">
+                                <img src="https://www.enworld.org/attachments/4f7d2918-8ce2-4033-b30a-045249c099f8-jpeg.140626/" alt="Tactical Analysis 3">
+                            </div>
+                            <button class="slider-btn prev" aria-label="Previous image"><</button>
+                            <button class="slider-btn next" aria-label="Next image">></button>
+                        </div>
+                    </div>
+                     <!-- Subsection 3 -->
+                    <div class="subsection">
+                        <div class="subsection-text">
+                            <h3>Distill your Homebrew</h3>
+                            <p>For the first time, play testing can happen in minutes rather than weeks. Because BattleProphet can numerically evaluate how individual elements of play impact combat, it can tell homebrewers how powerful an untested item or spell is relative to official material.</p>
+			    <p>And not just for homebrew content! Worried giving a party a magic item will break your next encounter? Fear not, as BattleProphet can tell you exactly how much impact any given magic item will have in an encounter.</p>
+                            <p>Worried your new ranger class feels rushed and unfinished right before a new edition release?</p>
+                         </div>
+                           <div class="subsection-slider">
+                            <div class="slider-images">
+                                <img src="https://static1.srcdn.com/wordpress/wp-content/uploads/2024/11/the-multiheaded-dragon-goddess-tiamat-besieges-a-city-with-balls-of-fire-in-art-from-the-greyhawk-setting-in-the-2024-d-d-dungeon-master-s-guide.jpg" alt="Homebrew Input 1">
+                                <img src="https://cdn.staticneo.com/mg/2009/08/remorhaz_display.jpg" alt="Homebrew Input 2">
+                                <img src="https://picsum.photos/seed/bpdesc33/800/450" alt="Homebrew Input 3">
+                            </div>
+                            <button class="slider-btn prev" aria-label="Previous image"><</button>
+                            <button class="slider-btn next" aria-label="Next image">></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq">
+             <div class="container">
+                 <h2>Frequently Asked Questions</h2>
+                 <div class="faq-item"> <div class="faq-question">Does BattleProphet use Artificial Intelligence?</div> <div class="faq-answer"> <p>Yes, BattleProphet leverages sophisticated AI and simulation algorithms to analyze combat scenarios based on creature statistics, abilities, party composition, and potentially environmental factors to predict outcomes and assess difficulty.</p> </div> </div>
+                 <div class="faq-item"> <div class="faq-question">Will BattleProphet ever support other TTRPGs?</div> <div class="faq-answer"> <p>Our initial launch focuses exclusively on Dungeons & Dragons 5th Edition due to its popularity and well-defined ruleset. Expanding to other systems like Pathfinder or future D&D editions is a possibility post-launch, depending on user feedback and development resources.</p> </div> </div>
+                 <div class="faq-item"> <div class="faq-question">When does it launch?</div> <div class="faq-answer"> <p>We are working hard towards a launch date! The best way to stay informed is to join the waitlist. You'll receive updates on development progress, beta testing opportunities, and the official launch announcement.</p> </div> </div>
+                 <div class="faq-item"> <div class="faq-question">What will pricing look like?</div> <div class="faq-answer"> <p>Final pricing is still being determined. We aim to offer several tiers, potentially including a free basic version for simple simulations and subscription options for advanced features, unlimited simulations, and access to expanded databases. Waitlist members may receive early bird discounts.</p> </div> </div>
+                 <div class="faq-item"> <div class="faq-question">Does BattleProphet steal other people's data?</div> <div class="faq-answer"> <p>No. BattleProphet operates on the core rules of D&D 5e and user-inputted data (like party composition or custom monster stats). It generates all simulation results internally based on these inputs and mathematical models. It does not scrape, collect, or require access to external user data from VTTs, character sheets online, or other sources.</p> </div> </div>
+		<div class="faq-item"> <div class="faq-question">How can D&D be simulated?</div> <div class="faq-answer"> <p>Admittedly, certain elements of D&D -storytelling, roleplaying, or rule of cool- are impossible to simulate. Instead, our goal is to allow fans of the game a way to dive deeper into the mechanics and possibly remove a barrier to entry for some players.</p> </div> </div>
+             </div>
+        </section>
+
+        <!-- Signup Section -->
+        <section id="signup">
+            <div class="container">
+                <h2>Join the Waitlist</h2>
+                <p>Sign up now to get notified when BattleProphet goes live and receive exclusive early access updates.</p>
+                <form id="waitlist-form" action="https://docs.google.com/forms/d/e/1FAIpQLSfBKmDm56FpiNkx724hi4uSZ5fLxJvBH6jv05oQ1yAm13082Q/formResponse" target="hidden_iframe" onsubmit="submitted=true;">
+                    <div> <label for="name">Name:</label> <input type="text" id="name" name="entry.196087420" required placeholder="Your Name"> </div>
+                    <div> <label for="email">Email:</label> <input type="email" id="email" name="entry.473330772" required placeholder="your.email@example.com"> </div>
+                    <div> <label for="source">How did you hear about us?</label> <select id="source" name="entry.1891408702" required> <option value="" disabled selected>-- Please Select --</option> <option value="Friend/Colleague">Friend/Colleague</option> <option value="Social Media (Twitter, Facebook, etc.)">Social Media (Twitter, Facebook, etc.)</option> <option value="Discord">Discord</option> <option value="Search Engine (Google, etc.)">Search Engine (Google, etc.)</option> <option value="Content Creator (YouTube, Twitch)">Content Creator (YouTube, Twitch)</option> <option value="Event/Conference">Event/Conference</option> <option value="Article/Blog Post">Article/Blog Post</option> <option value="Other">Other</option> </select> </div>
+                    <button type="submit" class="btn" id="submit-button">Sign Me Up!</button>
+                </form>
+                <div id="form-message"></div>
+                <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+             <div class="social-links">
+                <a href="https://discord.gg/QWnTkY5T" target="_blank" rel="noopener noreferrer" aria-label="Discord">Discord</a>
+                <a href="https://www.instagram.com/battleprophetofficial/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
+                <a href="https://patreon.com/BattleProphet" target="_blank" rel="noopener noreferrer" aria-label="Patreon">Patreon</a>
+            </div>
+            <p>© 2024 BattleProphet. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- FAQ Accordion ---
+        const faqItems = document.querySelectorAll('.faq-item'); faqItems.forEach(item => { const question = item.querySelector('.faq-question'); question.addEventListener('click', () => { const currentlyActive = document.querySelector('.faq-item.active'); if (currentlyActive && currentlyActive !== item) { currentlyActive.classList.remove('active'); } item.classList.toggle('active'); }); });
+
+        // --- Google Form Submission Handling ---
+        let submitted = false; const iframe = document.getElementById('hidden_iframe'); iframe.onload = function() { if (submitted) { const formMessage = document.getElementById('form-message'); const submitButton = document.getElementById('submit-button'); const form = document.getElementById('waitlist-form'); formMessage.textContent = 'Thank you for signing up! We\'ll be in touch.'; formMessage.className = 'success-message'; submitButton.disabled = true; submitButton.textContent = 'Submitted!'; form.reset(); setTimeout(() => { submitted = false; submitButton.disabled = false; submitButton.textContent = 'Sign Me Up!'; formMessage.textContent = ''; formMessage.className = ''; }, 4000); } }; const form = document.getElementById('waitlist-form'); form.addEventListener('submit', function(event) { submitted = true; const submitButton = document.getElementById('submit-button'); submitButton.disabled = true; submitButton.textContent = 'Submitting...'; });
+
+        // --- Smooth Scroll Links ---
+        document.querySelectorAll('header nav a[href^="#"], .welcome-content a[href^="#"], .logo[href^="#"]').forEach(anchor => { anchor.addEventListener('click', function (e) { e.preventDefault(); const targetId = this.getAttribute('href'); const targetElement = document.querySelector(targetId); if(targetElement) { const headerOffset = document.querySelector('header').offsetHeight; const elementPosition = targetElement.getBoundingClientRect().top; const offsetPosition = elementPosition + window.pageYOffset - headerOffset; window.scrollTo({ top: offsetPosition, behavior: "smooth" }); } }); });
+
+        // --- Subsection Image Sliders ---
+        const sliders = document.querySelectorAll('.subsection-slider');
+        sliders.forEach(slider => {
+            const imagesContainer = slider.querySelector('.slider-images');
+            const images = slider.querySelectorAll('.slider-images img');
+            const prevBtn = slider.querySelector('.slider-btn.prev');
+            const nextBtn = slider.querySelector('.slider-btn.next');
+            const imageCount = images.length;
+            let currentIndex = 0;
+            if (imageCount <= 1) { if(prevBtn) prevBtn.style.display = 'none'; if(nextBtn) nextBtn.style.display = 'none'; return; }
+            function showSlide(index) { const translateValue = -index * 100; imagesContainer.style.transform = `translateX(${translateValue}%)`; }
+            prevBtn.addEventListener('click', () => { currentIndex = (currentIndex - 1 + imageCount) % imageCount; showSlide(currentIndex); });
+            nextBtn.addEventListener('click', () => { currentIndex = (currentIndex + 1) % imageCount; showSlide(currentIndex); });
+            showSlide(currentIndex);
+        });
+
+        // --- Welcome Dice Animation LOOP---
+        const diceContainer = document.getElementById('dice-zone');
+        const allDice = diceContainer.querySelectorAll('.die'); // Will now select 12 dice
+        const plotContainer = document.getElementById('plot-container');
+        const rollDuration = 3000;
+        const displayDuration = 2500;
+        const numDice = allDice.length; // Updated automatically
+        const maxDieValue = 6;
+
+        function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        function runDiceCycle() {
+            // 1. Reset and Start Rolling
+            plotContainer.classList.remove('visible');
+            setTimeout(() => { plotContainer.innerHTML = ''; }, 500);
+
+            allDice.forEach((die, index) => {
+                die.textContent = '';
+                die.style.left = `${getRandomInt(5, 85)}%`;
+                die.style.top = `${getRandomInt(5, 85)}%`;
+                die.style.transform = `rotate(${getRandomInt(0, 360)}deg)`;
+                die.style.transition = 'none';
+                die.style.animation = `roll ${getRandomInt(1800, rollDuration-200)}ms linear infinite alternate`;
+                // Stagger more with more dice
+                die.style.animationDelay = `${index * 30}ms`;
+            });
+
+            // 2. Wait, Settle, Plot
+            setTimeout(() => {
+                const results = [];
+                const frequencies = {};
+                for(let i=1; i <= maxDieValue; i++) { frequencies[i] = 0; }
+
+                allDice.forEach(die => {
+                    die.style.animation = 'none';
+                    die.style.transition = 'top 0.5s ease-out, left 0.5s ease-out, transform 0.5s ease-out';
+                    // Wider final spread
+                    die.style.left = `${getRandomInt(5, 85)}%`;
+                    die.style.top = `${getRandomInt(10, 80)}%`;
+                    die.style.transform = `rotate(${getRandomInt(-30, 30)}deg)`;
+
+                    const result = getRandomInt(1, maxDieValue);
+                    results.push(result);
+                    frequencies[result]++;
+                    die.textContent = result;
+                });
+
+                // 3. Create/Display Plot
+                if (plotContainer) {
+                    plotContainer.innerHTML = '';
+                    let maxFrequency = 0;
+                    // Find max frequency based on the NEW number of dice
+                    Object.values(frequencies).forEach(freq => { if (freq > maxFrequency) maxFrequency = freq; });
+
+                    for (let i = 1; i <= maxDieValue; i++) {
+                        const barWrapper = document.createElement('div');
+                        barWrapper.classList.add('plot-bar-wrapper');
+                        const bar = document.createElement('div');
+                        bar.classList.add('plot-bar');
+                         // Calculate height relative to new maxFrequency
+                        const barHeight = maxFrequency > 0 ? (frequencies[i] / maxFrequency) * 90 : 0;
+                        bar.style.height = (frequencies[i] > 0 && barHeight < 2) ? '2%' : `${barHeight}%`;
+
+                        const label = document.createElement('div');
+                        label.classList.add('plot-label');
+                        label.textContent = i;
+                        barWrapper.appendChild(bar);
+                        barWrapper.appendChild(label);
+                        plotContainer.appendChild(barWrapper);
+                    }
+                    plotContainer.classList.add('visible');
+                 } else {
+                     console.error("Plot container not found!");
+                 }
+
+                // 4. Wait and Restart
+                setTimeout(runDiceCycle, displayDuration);
+
+            }, rollDuration);
+        }
+
+        // Start the first cycle
+        runDiceCycle();
+
+    </script>
+
+</body>
+</html>
